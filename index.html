@@ -1,0 +1,573 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Popel věrnosti — Prolog</title>
+<style>
+:root{
+  --bg:#161819; --panel:#1d2022; --line:#2e3133; --line2:#46494b;
+  --ash:#c9c7bd; --mut:#8a897f; --grn:#93a06a; --amb:#c79a3a; --rust:#b06a4a; --title:#d6d3c6;
+}
+*{box-sizing:border-box;}
+html,body{margin:0;}
+body{background:#0e0f10; color:var(--ash);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+  -webkit-font-smoothing:antialiased; padding:24px 16px;}
+.frame{max-width:880px; margin:0 auto; background:var(--bg);
+  border:1px solid var(--line); border-radius:12px; overflow:hidden;}
+.topbar{display:flex; justify-content:space-between; align-items:center;
+  padding:13px 18px; border-bottom:1px solid var(--line);}
+.topbar .t{font-size:13px; letter-spacing:2px; color:var(--title);}
+.topbar .s{font-size:12px; color:var(--mut);}
+.cols{display:grid; grid-template-columns:1.55fr 1fr;}
+.left{padding:24px 26px 26px; border-right:1px solid var(--line); min-width:0;}
+.loc{font-size:11px; letter-spacing:1.5px; color:var(--grn); margin-bottom:18px;}
+.narr{font-family:Georgia,"Times New Roman",serif; font-size:16px; line-height:1.82; color:var(--ash);}
+.narr p{margin:0 0 16px; animation:rise .5s ease both;}
+.narr p:last-child{margin-bottom:0;}
+.narr .note{color:var(--mut); font-style:italic; font-size:13.5px; line-height:1.6;
+  border-top:1px solid var(--line); padding-top:16px; margin-top:20px;}
+@keyframes rise{from{opacity:0; transform:translateY(5px);} to{opacity:1; transform:none;}}
+.choices{margin-top:24px; display:flex; flex-direction:column; gap:8px;}
+.choice{display:flex; gap:13px; align-items:flex-start; text-align:left;
+  background:var(--panel); border:1px solid var(--line); border-radius:8px;
+  padding:13px 15px; color:var(--ash); font-size:14.5px; cursor:pointer;
+  font-family:inherit; line-height:1.45; transition:border-color .15s, background .15s;}
+.choice:hover{border-color:var(--line2); background:#23262a;}
+.choice:focus-visible{outline:2px solid var(--grn); outline-offset:2px;}
+.choice .n{color:var(--grn); font-weight:600; flex:0 0 auto;}
+.choice .b{min-width:0;}
+.choice .cue{display:block; color:var(--mut); font-size:12px; margin-top:3px; font-style:italic;}
+.cont{display:inline-flex; align-items:center; gap:9px; background:transparent; border:none;
+  color:var(--mut); font-family:inherit; font-size:13.5px; letter-spacing:.6px;
+  cursor:pointer; padding:6px 2px; transition:color .15s;}
+.cont:hover{color:var(--ash);}
+.cont:focus-visible{outline:2px solid var(--grn); outline-offset:3px;}
+.cont .arr{color:var(--grn); font-size:16px;}
+.right{padding:24px 18px; display:flex; flex-direction:column; gap:18px;}
+.sec .h{font-size:11px; letter-spacing:1.5px; color:var(--mut); margin-bottom:8px;}
+.oath{font-family:Georgia,serif; font-style:italic; font-size:13px; color:#b8b6ac; line-height:1.5;}
+.traits{display:flex; flex-wrap:wrap; gap:6px;}
+.trait{font-size:12px; color:#cdd6b4; border:1px solid #4a553a; background:#23281d;
+  border-radius:6px; padding:3px 9px; animation:rise .4s ease both;}
+.traits .empty{color:var(--mut); font-style:italic; font-size:12px;}
+.squad{display:flex; flex-direction:column; gap:8px; font-size:13px;}
+.squad .row{display:flex; align-items:center; gap:9px;}
+.dot{width:7px; height:7px; border-radius:50%; flex:0 0 auto; transition:background .3s;}
+.squad .st{color:var(--mut); font-size:12px; margin-left:auto; text-align:right;}
+.locp{font-size:13px; line-height:1.5;}
+.locp .sub{color:var(--mut); font-size:12px;}
+.vox{font-family:ui-monospace,Menlo,Consolas,monospace; font-size:11px; color:var(--rust);
+  line-height:1.6; border-top:1px solid var(--line); padding-top:14px;}
+.replay{margin-top:10px; background:var(--panel); border:1px solid var(--line); border-radius:8px;
+  padding:11px 14px; color:var(--ash); font-size:14px; cursor:pointer; font-family:inherit;}
+.replay:hover{border-color:var(--line2); background:#23262a;}
+.kbd{font-size:11px; color:var(--mut); margin-top:16px;}
+@media (max-width:680px){
+  .cols{grid-template-columns:1fr;}
+  .left{border-right:none; border-bottom:1px solid var(--line);}
+}
+@media (prefers-reduced-motion:reduce){*{animation:none !important;}}
+</style>
+</head>
+<body>
+<div class="frame">
+  <div class="topbar"><span class="t">POPEL VĚRNOSTI</span><span class="s">Garda smrti · Prolog</span></div>
+  <div class="cols">
+    <div class="left">
+      <div class="loc" id="loc"></div>
+      <div class="narr" id="narr"></div>
+      <div class="choices" id="choices"></div>
+      <div class="kbd" id="kbd"></div>
+    </div>
+    <div class="right">
+      <div class="sec"><div class="h">PŘÍSAHA</div><div class="oath" id="p-oath"></div></div>
+      <div class="sec"><div class="h">CHARAKTER</div><div class="traits" id="p-traits"></div></div>
+      <div class="sec"><div class="h">ODDÍL</div><div class="squad" id="p-squad"></div></div>
+      <div class="sec"><div class="h">MÍSTO</div><div class="locp" id="p-loc"></div></div>
+      <div class="vox" id="p-vox"></div>
+    </div>
+  </div>
+</div>
+<script>
+var STORY = {
+
+  start: {
+    loc: "SUNDERETH · PŘED HRADBOU",
+    loc_sub: "Třiašedesátý den obléhání",
+    vox: "> ...obléhací linie drží... hradba do setmění...",
+    text: [
+      "Sundereth prší už třiašedesát dní. Ne déšť, jaký znají lidé — tenhle je kyselý a narezlý, ulpívá na keramitu a pomalu se zažírá do barvy tvé zbroje. Tvůj rebreather ho cedí s tichým, trpělivým mručením. Pro tebe je ten jed jenom počasí. Garda smrti se nedá otrávit. To je první věc, kterou se legie o sobě dozvěděla — a poslední, kterou kdy zapomene.",
+      "Stojíš po kotníky v bahně z popela a deště a díváš se na zeď, která vás zastavila na dva měsíce. Čtyřicet metrů mokrého kamene. Za ní tyran, který odmítl pokleknout — jeden z posledních na téhle straně galaxie, kdo si pořád ještě myslí, že Imperium je názor, a ne osud.",
+      "Za tvými zády dýchá dvě stě tvých bratří. Slyšíš je — ne dech, ale tiché vrzání servomotorů, klapnutí nábojové schránky, šepot bojové litanie přes vox. Je to zvuk trpělivosti. Garda smrti nikdy nespěchá. Garda smrti prostě nepřestane přicházet."
+    ],
+    cont: "s_line"
+  },
+
+  s_line: {
+    text: [
+      "Žádná trubka nezazní. Žádný řev, žádné vlajky. Jen seržant Vehl vedle tebe sklopí hledí, ty sklopíš svoje — a linie se dá do pohybu jako jediný organismus z keramitu a oceli.",
+      "Postupujete vzhůru po svahu, štít na štítu. Z hradby se sype palba: laserové šlehy, primitivní kinetika, sem tam vroucí olej, jako by tu tyran bojoval proti rytířům z legend. O váš pancíř se to tříští jako kroupy o střechu stodoly. Občas některý bratr klopýtne. Žádný nepadne. Jdete dál.",
+      "Vlevo od tebe kdosi přes vox monotónně odříkává Imperátorovu pravdu. Vpravo Daro, aspirant, mlčí. Slyšíš jen jeho dech — o poznání moc rychlý."
+    ],
+    cont: "s_daro"
+  },
+
+  s_daro: {
+    text: [
+      "Daro je s tebou teprve třetí kampaň. Ruce na bolteru má pevné — výcvik je pevný — ale dech ho prozrazuje. Tohle není strach ze smrti; Astartes se smrti nebojí. Tohle je váha okamžiku: poprvé je dost starý na to, aby cítil, že dnes večer možná někdo z oddílu nevstane.",
+      "Máš pár vteřin, než se dotknete zdi. Řekneš mu něco?"
+    ],
+    choices: [
+      { label: "„Drž formaci. Strach je pro lidi.“ — tvrdě a krátce.", cue: "ocel", to: "s_daro_hard" },
+      { label: "„Dýchej pomalu. Vidím tě. Jsi tam, kde máš být.“", cue: "klid", to: "s_daro_calm", effects: { bratrstvi: 1 } },
+      { label: "Beze slova mu položíš ruku na rameno.", cue: "mlčení", to: "s_daro_hand", effects: { bratrstvi: 1 } }
+    ]
+  },
+
+  s_daro_hard: {
+    text: [ "Daro mlčí. Pak skoro neznatelně kývne a jeho dech se srovná do tvrdé, mechanické kadence. Naučil se právě, že velitel necítí. Špatná lekce — ale dnes ho možná udrží naživu." ],
+    cont: "s_breach"
+  },
+  s_daro_calm: {
+    text: [ "Vidíš, jak se mu ramena o píď uvolní a dech zpomalí. „Ano, seržante.“ Dvě slova, ale jsou pevná. Vrátil ses mu zpátky do těla, právě včas." ],
+    cont: "s_breach"
+  },
+  s_daro_hand: {
+    text: [ "Necháš dlaň na jeho náramenním plátu o vteřinu déle, než je nutné. Nic neřekneš. Někdy mlčení unese víc než rozkaz. Když ruku sundáš, je zase celý tady." ],
+    cont: "s_breach"
+  },
+
+  s_breach: {
+    text: [
+      "Dvacet metrů. Deset. A pak svět zaduní.",
+      "Bratr-ničitel u paty zdi odpálí meltabombu a Sundereth se otřese až do morku. Kámen se rozteče jako vosk, čtyřicet metrů hradby zaúpí a otevře se průlom široký jako brána katedrály. Z té rány v těle pevnosti se valí tyranova garda — stovky mužů v rezavé zbroji, s očima rozšířenýma fanatismem a stimulanty, přímo do cesty tvého oddílu.",
+      "Vehl po tvém boku tiše zakleje jméno nějakého barbarského boha. Daro zvedne bolter. Všichni čekají. Velíš ty."
+    ],
+    cont: "temperament"
+  },
+
+  temperament: {
+    text: [
+      "Tahle vteřina rozhodne, jak tě bratři uvidí ještě za sto let. Jak na tebe vzpomene historie. Jak —",
+      "Ne. Na filozofii není čas. Tyranova garda se valí na tebe. Co uděláš?"
+    ],
+    choices: [
+      { label: "Postupuj. Krok za krokem, neúprosně.", cue: "stoik · neúprosný klid", to: "relentless", effects: { traits: ["Neúprosný"], bratrstvi: 1 } },
+      { label: "Nech zuřivost převzít velení. Do útoku!", cue: "krev · ztráta kázně", to: "furious", effects: { traits: ["Zuřivý"], podezreni: 1 } },
+      { label: "Sevři štíty. Ani jeden bratr nepadne zbytečně.", cue: "štít · oddíl nadevše", to: "shield", effects: { traits: ["Štítonoš"], bratrstvi: 2 } }
+    ]
+  },
+
+  relentless: {
+    loc_sub: "Vřava v průlomu",
+    text: [
+      "Nezrychlíš. Nezpomalíš. Zvedneš bolter a začneš pálit v rytmu kroku — výstřel, krok, výstřel, krok — a celý oddíl chytí ten rytmus s tebou. Není to zuřivost. Je to něco horšího pro toho, kdo stojí proti vám: je to jistota.",
+      "Tyranova garda do vás naráží jako příboj do útesu. Křičí, modlí se, umírají — a vy tím vším postupujete jako mlýn, který nezná únavu. Bahno pod nohama je čím dál červenější. Tvoje srdce tepe pomalu, šedesát úderů za minutu, jako bys jen procházel.",
+      "Když padne poslední z nich, stojíš přesně tam, kde jsi podle plánu stát měl. Ani o krok dál. Vehl se na tebe podívá a krátce kývne. Od něj je to celá řeč."
+    ],
+    cont: "aftermath"
+  },
+  furious: {
+    loc_sub: "Vřava v průlomu",
+    text: [
+      "Něco se v tobě protrhne — stará, hluboká věc z dob, kdy lidstvo ještě lovilo ve tmě. Vyrazíš z linie dřív, než tě rozum stačí zastavit, a bolter v tvých rukou přestane být zbraní a stane se hladem.",
+      "Daro tě následuje s výkřikem, jaký ze sebe ještě nikdy nevydal. Vehl řve tvoje jméno, ať se vrátíš do formace, ale ty už neslyšíš. Projdete tyranovou gardou jako čepel rozžhaveného železa sněhem. Je to rychlé. Je to skoro krásné.",
+      "A pak je po všem. Stojíš uprostřed mrtvých, hruď se ti zvedá — a když se ohlédneš, vidíš to: linie se za tebou roztrhla. Mezera, kterou musel Vehl zacelit vlastním tělem. Vyhráli jste. Jen jste na okamžik přestali být Gardou smrti. A Vehl to ví."
+    ],
+    cont: "aftermath"
+  },
+  shield: {
+    loc_sub: "Vřava v průlomu",
+    text: [
+      "Zvedneš zaťatou pěst a linie ztuhne, jako bys ji přibil k zemi. „Štíty.“ Jediné slovo přes vox. Bratři se semknou, štít zapadne do štítu a z oddílu se stane zeď, která kráčí.",
+      "Postupujete pomalu, draho placeno za každý metr, a tyran možná stihne stáhnout zálohy hloub do města. Ale jeho garda se o vaši formaci jen tříští a nemá kudy dovnitř. Daro je schovaný za tvým ramenem, kam se palba nedostane. Cítíš jeho dech na zátylku svého pancíře.",
+      "Když průlom konečně utichne, otočíš se a spočítáš je. Všechny. Každý bratr, se kterým jsi sem přišel, stojí na nohou. Žádné prázdné místo v řadě. Žádné jméno, které by sis musel pamatovat jinak než zaživa."
+    ],
+    cont: "aftermath"
+  },
+
+  aftermath: {
+    loc: "SUNDERETH · PRŮLOM",
+    loc_sub: "Po prvním náporu",
+    vox: "> ...průlom obsazen... čekejte na postup k citadele...",
+    text: [
+      "Ticho po bitvě má vlastní váhu. Déšť bubnuje do pancířů padlých — vašich i jejich. Pára stoupá z roztavené hradby a mísí se s mlhou. Někde dole sténá raněný nepřítel, kterého smrt zatím míjí.",
+      "Daro stojí nad jedním z tyranových vojáků. Muž je rozdrcený od pasu dolů, ale žije, a dívá se na vás těma vyděšenýma lidskýma očima, jakými se lidé vždycky dívali na Astartes. Daro váhá. Čeká, co uděláš ty."
+    ],
+    choices: [
+      { label: "Ukonči to. Rychle. Je to milost, ne pomsta.", cue: "milost", to: "a_mercy" },
+      { label: "Nech ho. Ať si pro něj přijde jeho vlastní bůh.", cue: "chlad", to: "a_leave" },
+      { label: "Ať to udělá Daro. Musí se to naučit.", cue: "výchova", to: "a_daro" }
+    ]
+  },
+
+  a_mercy: {
+    text: [ "Skloníš se a uděláš to jediným pohybem, beze zloby. Muž vydechne skoro úlevou. Daro tě sleduje a chápe rozdíl mezi zabíjením a krutostí — rozdíl, který polovina galaxie nikdy nepochopí." ],
+    cont: "wall_falls"
+  },
+  a_leave: {
+    text: [ "Otočíš se a jdeš dál. Za tebou muž tiše naříká do deště. Daro se ještě jednou ohlédne. Ty ne. Plán je vepředu, ne vzadu." ],
+    cont: "wall_falls"
+  },
+  a_daro: {
+    text: [ "„Tvůj cíl, aspirante.“ Daro polkne. Pak zvedne bolter a udělá to — trochu příliš tvrdě, trochu příliš rychle, jak to dělají ti, kdo to dělají poprvé. Ale udělá to. O kus víc voják, o kus míň chlapec." ],
+    cont: "wall_falls"
+  },
+
+  wall_falls: {
+    loc: "SUNDERETH · ZA HRADBOU",
+    loc_sub: "Vnitřní město",
+    vox: "> ...první linie obsazena... postupte k citadele...",
+    text: [
+      "Průlom je váš. Za hradbou se otevírá tyranovo vnitřní město — šedé věže v dešti, prázdné ulice, okna jako slepé oči. Rozkaz z Companie přijde úsečně, hlasem Battle-Captaina Garra samotného: postupovat k citadele, držet plán, neztrácet čas. Tyran se musí zlomit do setmění.",
+      "Oddíl se přeskupuje. Počítáš hlavy ze zvyku. A pak ti jedna chybí."
+    ],
+    cont: "w_ulran"
+  },
+
+  w_ulran: {
+    squad: { Ulran: "těžce raněn" },
+    text: [
+      "Najdeš ho podle zvuku. Ne podle výkřiku — Astartes nekřičí — ale podle dlouhého, vlhkého zasyčení, které vychází z prasklého rebreatheru. Ulran. Leží mezi troskami brány, břišní pancíř rozervaný kusem hradby, a z rány se line něco tmavého a hustého, co by člověka zabilo už před hodinou.",
+      "Gardistu to nezabije hned. To je na Gardě smrti to nejhorší i nejlepší zároveň — neumíráme snadno. Ulran může vydržet hodiny. Možná dny. Při vědomí. V bolesti, kterou by lidské tělo nepřežilo dost dlouho na to, aby ji vůbec stihlo procítit.",
+      "Zvedne k tobě oči. Pokusí se promluvit. Z rebreatheru vyjde jen sykot a bublání."
+    ],
+    cont: "w_decision"
+  },
+
+  w_decision: {
+    text: [
+      "Apothecarion je tři kilometry zpět, přes dobyté trosky. Citadela tři kilometry vpřed, kam míří rozkaz. Plán nečeká na nikoho — to je první zákon Gardy smrti.",
+      "Daro stojí nad Ulranem a dívá se na tebe. Vehl mlčí, ale i on čeká. Velíš ty."
+    ],
+    choices: [
+      { label: "Plán je plán. Apothecary si ho najde. Postupujeme.", cue: "disciplína · mise nadevše", to: "iron", effects: { traits: ["Železný"], squad: { Ulran: "ponechán Apothecarionu" } } },
+      { label: "Vezmu ho sám. Citadela počká.", cue: "bratr · oddíl nadevše", to: "father", effects: { traits: ["Otcovský"], bratrstvi: 2, squad: { Ulran: "neseš ho sám" } } },
+      { label: "Daro. Rozhodni ty. A žij s tím.", cue: "výchova · ková se velitel", to: "teacher", effects: { traits: ["Učitel"], squad: { Ulran: "svěřen Darovi", Daro: "poprvé rozhodl" } } }
+    ]
+  },
+
+  iron: {
+    loc_sub: "Plán drží",
+    text: [
+      "„Plán je plán.“ Tvůj hlas se ani nezachvěje. „Vox-call na Apothecarion. Souřadnice. A postupujeme.“ Daro na tebe chvíli zírá, jako by čekal jiná slova. Žádná nepřijdou.",
+      "Pak aspirant zvedne bolter, srovná krok a jde. Právě se naučil něco o tom, co znamená nosit tenhle pancíř. Nejsi si jistý, že to byla dobrá lekce. Jsi si jistý, že byla pravdivá.",
+      "Ulran zůstává ležet v dešti, menší a menší, jak se vzdaluješ. Citadela padne přesně podle plánu. Companie si tvé jméno zapíše mezi ta, na která je spolehnutí za každou cenu. Za každou."
+    ],
+    cont: "night"
+  },
+  father: {
+    loc_sub: "Plán se trhá",
+    text: [
+      "Neřekneš nic. Jen se skloníš, vezmeš Ulrana pod pažemi a přehodíš si jeho váhu přes rameno jako pytel s municí. Sto padesát kilo keramitu a masa. „Citadela počká.“",
+      "Vehl beze slova přejde na tvou nekrytou stranu a zvedne štít za vás oba. Daro zaujme druhý bok. Oddíl se zpomalí na tvoje tempo a plán se začne trhat ve švech — a nikdo z nich neřekne ani slovo proti.",
+      "Citadela padne. Později, dráž, ale padne. Ulran bude žít. A každý bratr v oddíle dnes viděl na vlastní oči, co jejich seržant dělá, když přijde volba mezi rozkazem a bratrem. To se nezapomíná. To se předává dál."
+    ],
+    cont: "night"
+  },
+  teacher: {
+    loc_sub: "Aspirant nese břímě",
+    text: [
+      "„Daro.“ Aspirant ztuhne. „Je tvůj. Doneseš ho, nebo ho tu necháš. Rozhodni — a žij s tím do konce svých dnů.“ Vidíš, jak mu ta slova projedou celým tělem. Naložil jsi mu váhu, kterou by žádný velitel neměl naložit nikomu, kdo na ni není připravený.",
+      "Dlouho mlčí. Déšť bubnuje. Pak se beze slova skloní, přehodí si Ulrana přes rameno a vykročí k citadele. Nese ho celou cestu a ani jednou ho nepoloží — ani když mu servomotory v noze začnou skučet pod dvojnásobnou zátěží.",
+      "Ten chlapec dnes zestárl o deset let. Z aspirantů se velitelé kují přesně takhle — nebo se lámou vejpůl. Ještě nevíš, který to bude. Ale rozhodl se sám. A to je možná to jediné, na čem nakonec záleží."
+    ],
+    cont: "night"
+  },
+
+  night: {
+    loc: "VENGEFUL SPIRIT · PODPALUBÍ",
+    loc_sub: "Noc po compliance",
+    vox: "> ...Sundereth v compliance... ztráty přijatelné...",
+    text: [
+      "Sundereth je dobyta. Tyran visí z vlastní hradby jako varování, které nikdo nepřežil, aby si ho mohl přečíst. Po třiašedesáti dnech déšť konečně ustal a nad mrtvým městem se rozhostilo ticho tak hluboké, že v něm slyšíš tlukot vlastních dvou srdcí.",
+      "Na palubě bitevní bárky Vengeful Spirit smyješ z pancíře barbarský jed a krev. Cítíš únavu — ne tu lidskou, ale hlubší, kostní, jaká přichází po měsících války. Velká křížová výprava trvá už dvě stě let. Začínáš se ptát, jestli vůbec má nějaký konec."
+    ],
+    cont: "night2"
+  },
+
+  night2: {
+    text: [
+      "V podpalubí tě najde Vehl. Posadí se vedle tebe, dlouho mlčí — a pak promluví hlasem o tón tišším, než je jeho zvyk. „Pár bratří se dnes večer schází dole. Pod vodními nádržemi. Bez hodností, bez insignií. Je tam host — řečník z jiné legie. Word Bearers.“ Odmlčí se. „Mluví o věcech, kterých se Imperátorova pravda nedotýká. Měl bys jít. Aspoň poslouchat.“",
+      "Sleduje tě. Ne podlahu — tebe. A ty si poprvé uvědomíš, že tahle otázka není o dnešním večeru. Je o tom, kým budeš, až tahle válka skončí — pokud vůbec skončí."
+    ],
+    choices: [
+      { label: "„Přijdu. Co je špatného na tom poslouchat?“", cue: "zvědavost · sejdeš dolů", to: "open1", effects: { traits: ["Zvědavý"], zkazenost: 1 } },
+      { label: "„Přijdu. Ale budu jen poslouchat. A dívat se.“", cue: "ostražitost · svědek", to: "watch1", effects: { traits: ["Ostražitý"] } },
+      { label: "„Ne. A na tvém místě bych tam taky nechodil.“", cue: "věrnost Pravdě · zůstaneš nahoře", to: "refuse1", effects: { traits: ["Věrný Pravdě"], podezreni: 1 } }
+    ]
+  },
+
+  open1: {
+    loc: "VENGEFUL SPIRIT · POD NÁDRŽEMI",
+    loc_sub: "Schůzka lóže",
+    vox: "> ...nezaznamenané shromáždění... podpalubí D...",
+    text: [
+      "Sejdeš dolů, do útrob lodi, kde dýchají obří vodní nádrže a vzduch je teplý a vlhký jako něčí dech. Žádné serv-lampy — jen tlumená rudá záře nouzového osvětlení. A v ní stojí třicet tvých bratří. Bez hodností, bez insignií, bez čehokoli, co by jednoho stavělo nad druhého. To je smysl lóže: tady jsou si všichni rovni.",
+      "U druhého konce, u improvizovaného oltáře, který tu před měsícem ještě nebyl, stojí host. Není to Gardista — jeho zbroj má barvu zaschlé krve a po pancíři se vinou řádky cizího, ručně rytého písma. Word Bearer. Představí se jako Khoradal a jeho hlas je tichý jako olej na vodě.",
+      "„Bratři. Přišel jsem vám položit jedinou otázku. Imperátor nás poslal dobýt galaxii v jeho jménu — a pak nám zakázal jakkoli ho ctít. Nazval se člověkem, ne bohem. Ptám se vás: viděl někdo z vás kdy obyčejného člověka, který dělá to, co dělá On?“"
+    ],
+    cont: "open2"
+  },
+  open2: {
+    text: [
+      "Místností proběhne souhlasné mručení. Vehl vedle tebe naslouchá s otevřenou tváří, jakou jsi u něj nikdy neviděl. A ty cítíš, jak se ti ta otázka zařezává hloub, než by měla — protože na ni máš odpověď. A ta odpověď zní: ne. Nikdy.",
+      "Khoradal se na tebe podívá, jako by ti to četl z očí. „Ty. Seržante. Něco tě tíží. Řekni to nahlas — tady se nikdo nemusí bát pravdy.“"
+    ],
+    choices: [
+      { label: "„Máš pravdu. A děsí mě, že máš pravdu.“", cue: "otevřeš se mu", to: "open_speak", effects: { zkazenost: 1 } },
+      { label: "Mlčíš. Ale neodejdeš. Posloucháš dál.", cue: "necháš to do sebe vsáknout", to: "open_listen" }
+    ]
+  },
+  open_speak: {
+    text: [
+      "Slova ti vyjdou z úst dřív, než je stačíš zvážit, a v rudém šeru zní hlasitěji, než jsi chtěl. Khoradal se neusměje — jen kývne, pomalu, jako někdo, kdo právě dostal přesně to, pro co přišel.",
+      "„Pak nejsi sám, bratře. A brzy nás bude víc.“ Vloží ti do dlaně malý kovový předmět — ikonu, kterou bys měl podle Imperátorovy pravdy rozdrtit na místě. Nerozdrtíš ji. Sevřeš ji v pěsti a ten chlad ti zůstane na kůži ještě dlouho poté, co odejdeš."
+    ],
+    cont: "muster"
+  },
+  open_listen: {
+    text: [
+      "Neřekneš nic. Ale taky neodejdeš — a oba dva to víte, ty i Khoradal. Zůstaneš až do konce, do poslední tiché věty, a každé jeho slovo se ti uloží někam hluboko, kde ho nedokážeš umlčet.",
+      "Když vystoupáš zpátky nahoru, loď je stejná jako předtím. Ty ne. Něco maličkého ti uvnitř povolilo a ty tušíš, že už to nikdy nedotáhneš zpátky."
+    ],
+    cont: "muster"
+  },
+
+  watch1: {
+    loc: "VENGEFUL SPIRIT · POD NÁDRŽEMI",
+    loc_sub: "Schůzka lóže",
+    vox: "> ...nezaznamenané shromáždění... podpalubí D...",
+    text: [
+      "Sejdeš dolů, ale ne jako poutník — jako průzkumník na nepřátelském území. Vodní nádrže dýchají horko a vlhko, rudé světlo polyká tváře, a ty děláš to, co umíš nejlíp: počítáš. Třicet bratří bez insignií. Pamatuješ si je. Každého.",
+      "U oltáře stojí Word Bearer v krvavé zbroji, představí se jako Khoradal a mluví tiše o Imperátorově lži, o bozích, kterým se nesmí klanět. Slova jsou medová a jedovatá zároveň. Ty je posloucháš — ne abys jim uvěřil, ale abys věděl, jak hluboko ten jed sahá.",
+      "A pak to uvidíš. Vehl. Tvůj Vehl, deset kampaní po tvém boku, naslouchá s tváří muže, který už se rozhodl. Tohle není jeho první schůzka. To poznáš na první pohled."
+    ],
+    cont: "watch2"
+  },
+  watch2: {
+    text: [
+      "Khoradal přejede pohledem po místnosti a na okamžik se zastaví na tobě. Pozná chlad. Pozná, že nepatříš mezi věřící — ještě ne. „Někdo mezi námi jen váží,“ řekne klidně. „To je dobře. Pravda snese, aby se vážila.“",
+      "Nechá tě být. Ale ty teď stojíš před volbou, jakou jsi nečekal: jak se zachováš k tomu, co právě víš?"
+    ],
+    choices: [
+      { label: "Zapamatuj si každou tvář. Hodí se to vědět.", cue: "shromažďuješ", to: "watch_map", effects: { podezreni: 0 } },
+      { label: "Hledej Vehlovy oči. Ať ví, že jsi ho viděl.", cue: "varování bratrovi", to: "watch_vehl", effects: { bratrstvi: 1 } }
+    ]
+  },
+  watch_map: {
+    text: [
+      "Projdeš pohledem celou místnost a uložíš si ji do paměti tak, jak Gardista ukládá rozmístění nepřátelských děl. Třicet jmen. Třicet tváří. Nevíš ještě, k čemu ti to bude — ale válka, ve které nevíš, kdo stojí kde, je válka prohraná předem.",
+      "Vyjdeš nahoru jako svědek. Neseš v hlavě mapu hniloby své vlastní legie. Je to těžší břímě, než sis myslel."
+    ],
+    cont: "muster"
+  },
+  watch_vehl: {
+    text: [
+      "Najdeš v rudém šeru Vehlovy oči a chvíli je nepustíš. Neřekneš nic — ale on pochopí. Já jsem tě viděl. Vím, kde jsi. Vehl ucukne pohledem jako přistižený, a poprvé za deset kampaní mezi vás něco vstoupí.",
+      "Není to ještě roztržka. Ale je to trhlina. A oba víte, že trhliny se v téhle válce nezacelují — jen rozšiřují."
+    ],
+    cont: "muster"
+  },
+
+  refuse1: {
+    loc: "VENGEFUL SPIRIT · PODPALUBÍ",
+    loc_sub: "Zůstal jsi nahoře",
+    text: [
+      "„Ne.“ Řekneš to klidně, bez hněvu, a o to víc to bolí. „A na tvém místě, Vehle, bych tam taky nechodil.“",
+      "Vehl dlouho mlčí. Pak vstane. „Škoda.“ Jediné slovo, ale je v něm něco, co tam dřív nebylo — odstup. Sejde do podpalubí sám a tebe nechá sedět ve světle horních palub, kde Imperátorova pravda pořád ještě platí. Poprvé za deset kampaní jdeš spát, aniž bys věděl, kde tvůj nejbližší bratr je a co dělá.",
+      "A s tím vědomím přichází otázka, která tě nenechá usnout: víš, že se pod tvýma nohama schází lóže. Co s tím uděláš?"
+    ],
+    cont: "refuse2"
+  },
+  refuse2: {
+    text: [
+      "Garda smrti pohrdá čarodějnictvím a šepoty. To je první, co se o legii ví. Nahlásit tajné shromáždění, kde cizí kazatel rozsévá pochybnost, by byla čistá, jasná povinnost.",
+      "Jenže tam dole je Vehl. A nahlásit lóži znamená nahlásit jeho."
+    ],
+    choices: [
+      { label: "Nahlas to. Tohle je zrada a ty to víš.", cue: "povinnost · tvrdá linie", to: "refuse_report", effects: { podezreni: 1 } },
+      { label: "Mlč. Vehl je tvůj bratr. Vyřídíš si to sám.", cue: "věrnost bratrovi · mlčení", to: "refuse_silent", effects: { bratrstvi: 1 } }
+    ]
+  },
+  refuse_report: {
+    text: [
+      "Najdeš službu konajícího kaplana a podáš hlášení — věcně, přesně, bez jmen, která bys nemusel jmenovat, ale i s těmi, která musíš. Kaplan tě dlouho mlčky pozoruje. „Dobře, seržante. Postaráme se o to.“ Nezní to jako vděk. Zní to jako poznámka do složky.",
+      "Udělal jsi, co bylo správné. Cítíš to. A přesto, když jdeš zpátky chodbou, míjíš bratry, kteří se k tobě obracejí zády, a uvědomíš si, že v legii, kde polovina už šeptá, je věrnost Pravdě ta nejosamělejší cesta ze všech."
+    ],
+    cont: "muster"
+  },
+  refuse_silent: {
+    text: [
+      "Nikomu nic neřekneš. Místo toho čekáš na Vehla u jeho lůžka, dlouho do umělé noci, a když přijde, řekneš mu jen čtyři slova: „Vím, kde jsi byl.“",
+      "Vehl se na tebe podívá a v jeho tváři se na okamžik mihne ten starý bratr, kterého znáš. „Tak se mnou příště pojď,“ řekne tiše. „Než bude pozdě.“ Nepůjdeš. Ale necháš to mezi vámi — nevyřčené, živé, čekající. Možná je to chyba. Možná je to jediná láska, které je Gardista schopen."
+    ],
+    cont: "muster"
+  },
+
+  muster: {
+    loc_sub: "Rozkaz nejvyšší priority",
+    vox: "> PRIORITA OMEGA — MUSTER — celá legie — cíl: DAVIN",
+    text: [
+      "Než stačíš domyslet, co se právě stalo, projede lodí vox-signál. Ne běžný rozkaz — tenhle tón slyšíš podruhé v životě. Priorita Omega. Celá legie.",
+      "Warmaster Horus svolává Gardu smrti. Ne do bitvy — k mustru. Ke shromáždění celé výpravy na jednom místě, jaké galaxie neviděla od chvíle, kdy byl na Ullanoru jmenován Warmasterem.",
+      "Vehl se na tebe podívá a v jeho očích je něco, co u Gardisty nečekáš. Neklid. „Kam nás to volá?“",
+      "Vox odpoví za tebe. Padne jediné jméno — jméno světa, který zatím nikdo z vás nezná, ale který si budete pamatovat až do konce, ať bude jakýkoli.",
+      "„Davin.“"
+    ],
+    addText: [
+      { trait: "Zvědavý", p: "Ikona v tvé pěsti je studená jako led. Poprvé tě napadne, že na Davin možná nejedeš proti něčemu — ale vstříc něčemu, co už nosíš v sobě." },
+      { trait: "Ostražitý", p: "Díváš se na Vehlův neklid a víš o něm víc, než by si přál. Jedeš na Davin jako jediný v oddíle, kdo vidí, že legie už se láme zevnitř — a nemá to komu říct." },
+      { trait: "Věrný Pravdě", p: "Stojíš mezi bratry, kteří se k tobě obracejí zády, a jedeš na Davin sám uprostřed dvou set lidí. Věrnost je náhle to nejtěžší břímě, jaké kdy poneseš." }
+    ],
+    note: "Konec hratelné ukázky. Tři cesty lóží, jeden cíl — Davin. To, co sis o sobě vysloužil, máš vpravo. Na Davinu se Warmaster vrátí z chrámu změněný, a pak přijde Istvaan.",
+    end: true
+  }
+
+};
+
+if (typeof module !== "undefined") { module.exports = STORY; }
+
+function initState(){
+  return {
+    oath: "Bez přísahy.",
+    traits: [],
+    bratrstvi: 0, podezreni: 0, zkazenost: 0,
+    loc: "", loc_sub: "", vox: "",
+    squad: { Vehl: "po tvém boku", Ulran: "v palebné linii", Daro: "aspirant" }
+  };
+}
+var state = initState();
+var currentChoices = [];
+var continueTarget = null;
+var SQUAD_ORDER = ["Vehl", "Ulran", "Daro"];
+
+function statusColor(s){
+  s = (s || "").toLowerCase();
+  if (/(padl|mrtev|ztrac)/.test(s)) return "var(--rust)";
+  if (/(raně|sevř|prask|rán|svěř|neseš|nese)/.test(s)) return "var(--amb)";
+  if (/(ponech|apothec|zpět|odveze)/.test(s)) return "var(--mut)";
+  return "var(--grn)";
+}
+function esc(t){ return t.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
+
+function renderPanel(){
+  document.getElementById("loc").textContent = state.loc;
+  document.getElementById("p-oath").textContent = state.oath;
+
+  var tr = document.getElementById("p-traits");
+  tr.innerHTML = state.traits.length
+    ? state.traits.map(function(t){ return '<span class="trait">'+esc(t)+'</span>'; }).join("")
+    : '<span class="empty">— zatím neurčen —</span>';
+
+  document.getElementById("p-squad").innerHTML = SQUAD_ORDER.map(function(name){
+    var st = state.squad[name];
+    return '<div class="row"><span class="dot" style="background:'+statusColor(st)+'"></span>'
+         + esc(name) + '<span class="st">' + esc(st) + '</span></div>';
+  }).join("");
+
+  document.getElementById("p-loc").innerHTML =
+    esc(state.loc) + '<br><span class="sub">' + esc(state.loc_sub || "") + '</span>';
+  document.getElementById("p-vox").textContent = state.vox;
+}
+
+function showNode(id){
+  var node = STORY[id];
+  if (!node) return;
+
+  if (node.loc !== undefined) state.loc = node.loc;
+  if (node.loc_sub !== undefined) state.loc_sub = node.loc_sub;
+  if (node.vox !== undefined) state.vox = node.vox;
+  if (node.squad) for (var k in node.squad) state.squad[k] = node.squad[k];
+
+  var narr = document.getElementById("narr");
+  narr.innerHTML = "";
+  node.text.forEach(function(p, i){
+    var el = document.createElement("p");
+    el.textContent = p;
+    el.style.animationDelay = (i * 0.14) + "s";
+    narr.appendChild(el);
+  });
+  if (node.addText){
+    node.addText.forEach(function(a){
+      if (state.traits.indexOf(a.trait) !== -1){
+        var ae = document.createElement("p");
+        ae.textContent = a.p;
+        narr.appendChild(ae);
+      }
+    });
+  }
+  if (node.note){
+    var nt = document.createElement("p");
+    nt.className = "note";
+    nt.textContent = node.note;
+    narr.appendChild(nt);
+  }
+
+  var box = document.getElementById("choices");
+  var kbd = document.getElementById("kbd");
+  box.innerHTML = "";
+  currentChoices = [];
+  continueTarget = null;
+
+  if (node.end){
+    kbd.textContent = "";
+    var rb = document.createElement("button");
+    rb.className = "replay";
+    rb.textContent = "↻ Hrát znovu";
+    rb.onclick = function(){ state = initState(); showNode("start"); };
+    box.appendChild(rb);
+  } else if (node.cont){
+    continueTarget = node.cont;
+    var cb = document.createElement("button");
+    cb.className = "cont";
+    cb.innerHTML = 'pokračovat <span class="arr">▸</span>';
+    cb.onclick = advance;
+    box.appendChild(cb);
+    kbd.textContent = "Mezerník nebo klikni pro pokračování.";
+  } else {
+    (node.choices || []).forEach(function(c, i){
+      currentChoices.push(c);
+      var b = document.createElement("button");
+      b.className = "choice";
+      b.innerHTML = '<span class="n">' + (i+1) + '</span><span class="b">' + esc(c.label)
+        + (c.cue ? '<span class="cue">' + esc(c.cue) + '</span>' : '') + '</span>';
+      b.onclick = function(){ choose(c); };
+      box.appendChild(b);
+    });
+    kbd.textContent = "Volby ovládáš klávesami 1 / 2 / 3 nebo kliknutím.";
+  }
+
+  renderPanel();
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+function advance(){ if (continueTarget) showNode(continueTarget); }
+
+function choose(c){
+  var e = c.effects;
+  if (e){
+    if (e.traits) e.traits.forEach(function(t){ if (state.traits.indexOf(t) === -1) state.traits.push(t); });
+    if (typeof e.bratrstvi === "number") state.bratrstvi += e.bratrstvi;
+    if (typeof e.podezreni === "number") state.podezreni += e.podezreni;
+    if (typeof e.zkazenost === "number") state.zkazenost += e.zkazenost;
+    if (e.oath) state.oath = e.oath;
+    if (e.squad) for (var k in e.squad) state.squad[k] = e.squad[k];
+  }
+  showNode(c.to);
+}
+
+document.addEventListener("keydown", function(ev){
+  if (continueTarget && (ev.key === " " || ev.key === "Enter" || ev.key === "ArrowRight")){
+    ev.preventDefault(); advance(); return;
+  }
+  var n = parseInt(ev.key, 10);
+  if (n >= 1 && n <= currentChoices.length){ ev.preventDefault(); choose(currentChoices[n-1]); }
+});
+
+showNode("start");
+</script>
+</body>
+</html>
